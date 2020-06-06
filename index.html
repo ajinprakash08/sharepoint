@@ -3,31 +3,26 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <link href="css/bootstrap.min.css" rel="stylesheet">
-    <script src="js/jquery-3.2.1.slim.min.js"></script>
-    <script src="js/popper.min.js"></script>
+    <link href="/Style%20Library/KMIntranetV2/image-slider/css/bootstrap.min.css" rel="stylesheet">
+    <script src="/Style%20Library/KMIntranetV2/image-slider/js/jquery-3.2.1.slim.min.js"></script>
+    <script src="/Style%20Library/KMIntranetV2/image-slider/js/popper.min.js"></script>
+    <script src="/Style%20Library/KMIntranetV2/image-slider/js/bootstrap.min.js"></script>
+    
+    <style>
+        .employee,.voting,#tabs,.selection{
+            display: none!important;
+        }
+
+    </style>
 </head>
 
 <body>
     <div id="carouselExampleIndicators" class="carousel slide" data-ride="carousel">
         <ol class="carousel-indicators">
-            <li data-target="#carouselExampleIndicators" data-slide-to="0" class="active"></li>
-            <li data-target="#carouselExampleIndicators" data-slide-to="1"></li>
-            <li data-target="#carouselExampleIndicators" data-slide-to="2"></li>
+            
         </ol>
         <div class="carousel-inner">
-            <div class="carousel-item active">
-                <img class="d-block w-100" data-toggle="modal" data-target="exampleModal" data-target="#carouselExample"
-                    src="images/3.svg" alt="First slide">
-            </div>
-            <div class="carousel-item">
-                <img class="d-block w-100" data-toggle="modal" data-target="exampleModal" data-target="#carouselExample"
-                    role="dialog" data-toggle="modal" src="images/2.svg" alt="Second slide">
-            </div>
-            <div class="carousel-item">
-                <img class="d-block w-100" data-toggle="modal" data-target="exampleModal" data-target="#carouselExample"
-                    src="images/1.svg" alt="Third slide">
-            </div>
+           
         </div>
         <a class="carousel-control-prev" href="#carouselExampleIndicators" role="button" data-slide="prev">
             <span class="carousel-control-prev-icon" aria-hidden="true"></span>
@@ -60,6 +55,81 @@
 
         <script>
             $(document).ready(function () {
+                SP.SOD.executeFunc('sp.js', 'SP.ClientContext', getPictures);
+            });
+
+
+            function getListItems(listTitle, queryText, success, error) {
+                var ctx = new SP.ClientContext(_spPageContextInfo.webServerRelativeUrl);
+                var web = ctx.get_web();
+                var list = web.get_lists().getByTitle(listTitle);
+                //var list = ctx.get_web().get_lists().getByTitle('Announcements');
+                var query = new SP.CamlQuery();
+                query.set_viewXml(queryText);
+                var items = list.getItems(query);
+                ctx.load(items);
+                ctx.executeQueryAsync(
+                    function () {
+                        success(items);
+                    },
+                    error
+                );
+            }
+
+            var pictureEntries = [];
+            function getPictures() {
+                var listTitle = "Preserving Employee Gallery";
+                var queryText = '<View><Query><OrderBy><FieldRef Name="Modified" Ascending="FALSE"/></OrderBy></Query></View>';
+                getListItems(listTitle, queryText,
+                    function (items) {
+                        pictureEntries = [];
+                        for (var i = 0; i < items.get_count(); i++) {
+                            var item = items.getItemAtIndex(i);
+                            var entry = {
+                                'Url': item.get_item('FileRef'),
+                                'Name': item.get_item('Title')
+                            };
+                            pictureEntries.push(entry);
+                        }
+                        renderImage(pictureEntries);
+                    },
+                    error);
+            }
+
+            function renderImage() {
+                if (pictureEntries.length > 0) {
+                    var html = "";
+                    $.each(pictureEntries, function (index, item) {
+
+                        if (index == 0) {
+                            $('.carousel-indicators').append('<li data-target="#carouselExampleIndicators" data-slide-to="' + index + '" class="active"></li>');
+                            html += `
+                        <div class="carousel-item active">
+                <img class="d-block w-100" data-toggle="modal" data-target="exampleModal" data-target="#carouselExample"
+                    src="`+ item.Url + `" >
+            </div>
+                        `;
+                        }
+                        else {
+                            $('.carousel-indicators').append('<li data-target="#carouselExampleIndicators" data-slide-to="' + index + '" ></li>');
+                            html += `
+                        <div class="carousel-item">
+                <img class="d-block w-100" data-toggle="modal" data-target="exampleModal" data-target="#carouselExample"
+                    src="`+ item.Url + `" >
+            </div>
+                        `;
+
+                        }
+                    });
+                }
+                $('.carousel-inner').html(html);
+                $(".carousel").carousel();
+                enabletriggers();
+            }
+            function error() {
+                console.log("error");
+            }
+            function enabletriggers() {
                 $('.d-block').click(function () {
                     $('.modal-body').html(this.outerHTML);
                     $("#exampleModal").modal('show');
@@ -79,60 +149,9 @@
                     // do something...
                     $('.carousel').carousel('cycle');
                 })
-            });
-
-
-            function getListItems(listTitle, queryText, success, error) {
-                var ctx = SP.ClientContext.get_current();
-                var web = ctx.get_web();
-                var list = web.get_lists().getByTitle(listTitle);
-                var query = new SP.CamlQuery();
-                query.set_viewXml(queryText);
-                var items = list.getItems(query);
-                ctx.load(items);
-                ctx.executeQueryAsync(
-                    function () {
-                        success(items);
-                    },
-                    error
-                );
-            }
-
-            var pictureEntries = [];
-            function getPictures(success, error) {
-                var listTitle = "Pictures";
-                var queryText = '<View><Query><OrderBy><FieldRef Name="Modified" Ascending="FALSE"/></OrderBy></Query></View>';
-                getListItems(listTitle, queryText,
-                    function (items) {
-                        pictureEntries = [];
-                        for (var i = 0; i < items.get_count(); i++) {
-                            var item = items.getItemAtIndex(i);
-                            var entry = {
-                                'Url': item.get_item('FileRef'),
-                                'Name': item.get_item('Title')
-                            };
-                            pictureEntries.push(entry);
-                        }
-                        success(pictureEntries);
-                    },
-                    error);
-            }
-
-            function success() {
-                if (pictureEntries.length > 0) {
-                    var html = "";
-                    $.each(pictureEntries, function () {
-                        html += `
-                        <div class="carousel-item active">
-                <img class="d-block w-100" data-toggle="modal" data-target="exampleModal" data-target="#carouselExample"
-                    src="`+pictureEntries.Url+`" alt="First slide">
-            </div>
-                        `;
-                    })
-                }
             }
         </script>
-        <script src="js/bootstrap.min.js"></script>
+
 </body>
 
 </html>
